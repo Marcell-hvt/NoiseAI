@@ -72,6 +72,9 @@ def denoise_image(model, device, image_path, output_path):
 
 def main():
 
+    input_path = sinput_path  = sys.argv[1] if len(sys.argv) > 1 else "kep_zajos.jpg"
+    output_path = sys.argv[2] if len(sys.argv) > 2 else "kep_tiszta.jpg"
+
     if not os.path.exists(input_path):
         print(f"Nem talalhato: {input_path}")
         return
