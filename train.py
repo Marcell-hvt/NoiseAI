@@ -1,5 +1,4 @@
 import os
-from pyexpat import model
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
@@ -15,12 +14,12 @@ sys.stdout.reconfigure(encoding='utf-8')
 # ─────────────────────────────────────────────
 TRAIN_DIR   = "data/train"   # ide tedd a tiszta képeket
 EPOCHS      = 500
-BATCH_SIZE  = 8              # ha elfogy a VRAM, csökkentsd 2-re
+BATCH_SIZE  = 14              # ha elfogy a VRAM, csökkentsd 2-re
 PATCH_SIZE  = 256            # 256×256 patcheket tanítunk (nem egész 720p-t)
 LR          = 1e-4           # tanulási ráta
 SAVE_EVERY  = 5              # minden 5. epoch után elmenti a modellt
-RESUME_FROM = "checkpoints/unet_epoch160.pth"  # vagy az utolsó mentett
-RESUME_EPOCH = 160  # honnan folytatjuk
+RESUME_FROM = "checkpoints/unet_epoch285.pth"  # vagy az utolsó mentett
+RESUME_EPOCH = 285  # honnan folytatjuk
 # ─────────────────────────────────────────────
 
 
@@ -53,7 +52,7 @@ class DenoiseDataset(Dataset):
         try:
             img = Image.open(self.paths[idx]).convert("RGB")
             clean = self.transform(img)
-            random_sigma = torch.FloatTensor(1).uniform_(5, 200).item()
+            random_sigma = torch.FloatTensor(1).uniform_(5, 100).item()
             noise = torch.randn_like(clean) * (random_sigma / 255.0)
             noisy = torch.clamp(clean + noise, 0.0, 1.0)
             return noisy, clean
@@ -69,24 +68,27 @@ def train():
     # Adathalmaz és DataLoader
     dataset = DenoiseDataset(TRAIN_DIR, PATCH_SIZE)
     loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True,
-                    num_workers=6, pin_memory=True,
+                    num_workers=7, pin_memory=True,
                     persistent_workers=True,
                     prefetch_factor=2)  
     print(f"Tanítóképek száma: {len(dataset)}")
 
     # Modell, veszteségfüggvény, optimalizáló
     model = UNet().to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LR)
     if os.path.exists(RESUME_FROM):
         model.load_state_dict(torch.load(RESUME_FROM, map_location=device))
         print(f"Checkpoint betöltve: {RESUME_FROM}")
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = 5e-5
     else:
         print("Nincs checkpoint, nulláról indul...")
     criterion = nn.L1Loss()          # L1 élesebb képeket ad mint MSE
-    optimizer = torch.optim.Adam(model.parameters(), lr=LR)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
+    
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=300, eta_min=1e-6)
 
     os.makedirs("checkpoints", exist_ok=True)
-    with open("adatok.txt", "w", encoding="utf-8") as fajl:
+    with open("adatok.txt", "a", encoding="utf-8") as fajl:
         fajl.write("")
     print("Fájl kész: adatok.txt")
 

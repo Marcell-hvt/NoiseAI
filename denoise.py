@@ -11,7 +11,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 # ─────────────────────────────────────────────
 # BEÁLLÍTÁSOK
 # ─────────────────────────────────────────────
-MODEL_PATH = "checkpoints/unet_epoch200.pth"
+MODEL_PATH = "checkpoints/unet_final.pth"
 PATCH_SIZE = 256   # ugyanakkora mint tanításkor
 OVERLAP    = 128    # átfedés a patchek között (simább illesztés)
 # ─────────────────────────────────────────────
@@ -71,8 +71,6 @@ def denoise_image(model, device, image_path, output_path):
 
 
 def main():
-    input_path  = sys.argv[1] if len(sys.argv) > 1 else "kep_zajos.jpg"
-    output_path = sys.argv[2] if len(sys.argv) > 2 else "kep_tiszta.jpg"
 
     if not os.path.exists(input_path):
         print(f"Nem talalhato: {input_path}")
